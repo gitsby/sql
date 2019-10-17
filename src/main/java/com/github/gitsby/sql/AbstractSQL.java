@@ -50,7 +50,7 @@ abstract class AbstractSQL<T> {
     return getSelf();
   }
 
-  public T select_distinct(String columns) {
+  public T selectDistinct(String columns) {
     sql().distinct = true;
     select(columns);
     return getSelf();
@@ -316,7 +316,7 @@ abstract class AbstractSQL<T> {
 
       sqlClause(builder, "WHERE", where, "", "", " AND ");
       sqlClause(builder, "GROUP BY", groupBy, "", "", ", ");
-      sqlClause(builder, "HAVING", having, "(", ")", " AND ");
+      sqlClause(builder, "HAVING", having, "", "", " AND ");
       sqlClause(builder, "ORDER BY", orderBy, "", "", ", ");
       sqlClause(builder, "LIMIT", limit, "", "", "");
       sqlClause(builder, "OFFSET", offset, "", "", "");
