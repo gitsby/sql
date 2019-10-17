@@ -66,12 +66,12 @@ abstract class AbstractSQL<T> {
     return getSelf();
   }
 
-  public T innerjoin(String join) {
+  public T innerJoin(String join) {
     sql().joins.put(join, JoinType.INNER);
     return getSelf();
   }
 
-  public T leftjoin(String join) {
+  public T leftJoin(String join) {
     sql().joins.put(join, JoinType.LEFT);
     return getSelf();
   }
@@ -232,7 +232,7 @@ abstract class AbstractSQL<T> {
   }
 
   public enum JoinType {
-    JOIN("JOIN"), INNER(" INNER JOIN"), LEFT("LEFT JOIN"), RIGHT("RIGHT JOIN"), OUTER("OUTER JOIN");
+    JOIN("JOIN"), INNER("INNER JOIN"), LEFT("LEFT JOIN"), RIGHT("RIGHT JOIN"), OUTER("OUTER JOIN");
 
     public final String sqlKeyWord;
 

@@ -8,6 +8,62 @@ import org.junit.Test;
 public class SQLSelectTest {
 
   @Test
+  public void inner_join() {
+    SQL sql = new SQL();
+    sql.select("1");
+    sql.from("test_table x");
+    sql.innerJoin("test_table2 x1 on x1.col = x.col");
+    String sqlQuery = sql.toString();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\ninner join test_table2 x1 on x1.col = x.col");
+  }
+
+  @Test
+  public void left_join() {
+    SQL sql = new SQL();
+    sql.select("1");
+    sql.from("test_table x");
+    sql.leftJoin("test_table2 x1 on x1.col = x.col");
+    String sqlQuery = sql.toString();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\nleft join test_table2 x1 on x1.col = x.col");
+  }
+
+  @Test
+  public void right_join() {
+    SQL sql = new SQL();
+    sql.select("1");
+    sql.from("test_table x");
+    sql.rightjoin("test_table2 x1 on x1.col = x.col");
+    String sqlQuery = sql.toString();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\nright join test_table2 x1 on x1.col = x.col");
+  }
+
+  @Test
+  public void outer_join() {
+    SQL sql = new SQL();
+    sql.select("1");
+    sql.from("test_table x");
+    sql.outerjoin("test_table2 x1 on x1.col = x.col");
+    String sqlQuery = sql.toString();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\nouter join test_table2 x1 on x1.col = x.col");
+  }
+
+  @Test
+  public void join_order() {
+    SQL sql = new SQL();
+    sql.select("1");
+    sql.from("test_table x");
+    sql.outerjoin("test_table2 x1 on x1.col = x.col");
+    sql.leftJoin("test_table3 x2 on x2.col = x.col");
+    sql.innerJoin("test_table4 x3 on x3.col = x.col");
+    String sqlQuery = sql.toString();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x"
+                                                   + "\nouter join test_table2 x1 on x1.col = x.col"
+                                                   + "\nleft join test_table3 x2 on x2.col = x.col"
+                                                   + "\ninner join test_table4 x3 on x3.col = x.col");
+  }
+
+
+  @Test
   public void from() {
     SQL sql = new SQL();
     sql.select("1");
