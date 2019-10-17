@@ -44,29 +44,6 @@ abstract class AbstractSQL<T> {
     }
   }
 
-  public T update(String table) {
-    sql().statementType = SQLStatement.StatementType.UPDATE;
-    sql().tables.add(table);
-    return getSelf();
-  }
-
-  public T set(String sets) {
-    sql().sets.add(sets);
-    return getSelf();
-  }
-
-  public T insert_into(String tableName) {
-    sql().statementType = SQLStatement.StatementType.INSERT;
-    sql().tables.add(tableName);
-    return getSelf();
-  }
-
-  public T values(String columns, String values) {
-    sql().columns.add(columns);
-    sql().values.add(values);
-    return getSelf();
-  }
-
   public T select(String columns) {
     sql().statementType = SQLStatement.StatementType.SELECT;
     sql().select.add(columns);
@@ -76,12 +53,6 @@ abstract class AbstractSQL<T> {
   public T select_distinct(String columns) {
     sql().distinct = true;
     select(columns);
-    return getSelf();
-  }
-
-  public T delete_from(String table) {
-    sql().statementType = SQLStatement.StatementType.DELETE;
-    sql().tables.add(table);
     return getSelf();
   }
 
@@ -121,15 +92,16 @@ abstract class AbstractSQL<T> {
     return getSelf();
   }
 
-  public T or() {
-    sql().lastList.add(OR);
-    return getSelf();
-  }
-
-  public T and() {
-    sql().lastList.add(AND);
-    return getSelf();
-  }
+//  TODO decide need or not
+//  public T or() {
+//    sql().lastList.add(OR);
+//    return getSelf();
+//  }
+//
+//  public T and() {
+//    sql().lastList.add(AND);
+//    return getSelf();
+//  }
 
   public T group_by(String columns) {
     sql().groupBy.add(columns);
@@ -272,23 +244,20 @@ abstract class AbstractSQL<T> {
   private static class SQLStatement {
 
     public enum StatementType {
-      DELETE, INSERT, SELECT, UPDATE
+      SELECT
     }
 
 
     HashMap<String, JoinType> joins = new LinkedHashMap<>();
 
     StatementType statementType;
-    List<String> sets = new ArrayList<>();
-    List<String> select = new ArrayList<>();
     List<String> tables = new ArrayList<>();
+    List<String> select = new ArrayList<>();
     List<String> where = new ArrayList<>();
     List<String> having = new ArrayList<>();
     List<String> groupBy = new ArrayList<>();
     List<String> orderBy = new ArrayList<>();
     List<String> lastList = new ArrayList<>();
-    List<String> columns = new ArrayList<>();
-    List<String> values = new ArrayList<>();
     String limit = null;
     String offset = null;
     boolean distinct;
@@ -354,27 +323,6 @@ abstract class AbstractSQL<T> {
       return builder.toString();
     }
 
-    private String insertSQL(SafeAppendable builder) {
-      sqlClause(builder, "INSERT INTO", tables, "", "", "");
-      sqlClause(builder, "", columns, "(", ")", ", ");
-      sqlClause(builder, "VALUES", values, "(", ")", ", ");
-      return builder.toString();
-    }
-
-    private String deleteSQL(SafeAppendable builder) {
-      sqlClause(builder, "DELETE FROM", tables, "", "", "");
-      sqlClause(builder, "WHERE", where, "( ", " )", " AND ");
-      return builder.toString();
-    }
-
-    private String updateSQL(SafeAppendable builder) {
-
-      sqlClause(builder, "UPDATE", tables, "", "", "");
-      sqlClause(builder, "SET", sets, "", "", ", ");
-      sqlClause(builder, "WHERE", where, "( ", " )", " AND ");
-      return builder.toString();
-    }
-
     public String sql(Appendable a) {
       SafeAppendable builder = new SafeAppendable(a);
 
@@ -385,20 +333,9 @@ abstract class AbstractSQL<T> {
       String answer;
 
       switch (statementType) {
-        case DELETE:
-          answer = deleteSQL(builder);
-          break;
-
-        case INSERT:
-          answer = insertSQL(builder);
-          break;
 
         case SELECT:
           answer = selectSQL(builder);
-          break;
-
-        case UPDATE:
-          answer = updateSQL(builder);
           break;
 
         default:
