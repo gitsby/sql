@@ -13,7 +13,7 @@ public class SQLSelectTest {
     sql.select("1");
     sql.from("test_table x");
     sql.innerJoin("test_table2 x1 on x1.col = x.col");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\ninner join test_table2 x1 on x1.col = x.col");
   }
 
@@ -23,7 +23,7 @@ public class SQLSelectTest {
     sql.select("1");
     sql.from("test_table x");
     sql.leftJoin("test_table2 x1 on x1.col = x.col");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\nleft join test_table2 x1 on x1.col = x.col");
   }
 
@@ -33,7 +33,7 @@ public class SQLSelectTest {
     sql.select("1");
     sql.from("test_table x");
     sql.rightjoin("test_table2 x1 on x1.col = x.col");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\nright join test_table2 x1 on x1.col = x.col");
   }
 
@@ -43,7 +43,7 @@ public class SQLSelectTest {
     sql.select("1");
     sql.from("test_table x");
     sql.outerjoin("test_table2 x1 on x1.col = x.col");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x\nouter join test_table2 x1 on x1.col = x.col");
   }
 
@@ -55,7 +55,7 @@ public class SQLSelectTest {
     sql.outerjoin("test_table2 x1 on x1.col = x.col");
     sql.leftJoin("test_table3 x2 on x2.col = x.col");
     sql.innerJoin("test_table4 x3 on x3.col = x.col");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table x"
                                                    + "\nouter join test_table2 x1 on x1.col = x.col"
                                                    + "\nleft join test_table3 x2 on x2.col = x.col"
@@ -68,7 +68,7 @@ public class SQLSelectTest {
     SQL sql = new SQL();
     sql.select("1");
     sql.from("test_table");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1\nfrom test_table");
   }
 
@@ -76,7 +76,7 @@ public class SQLSelectTest {
   public void select() {
     SQL sql = new SQL();
     sql.select("1!");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1!");
   }
 
@@ -87,8 +87,20 @@ public class SQLSelectTest {
     sql.select("1!");
     sql.select("2");
     sql.select("3");
-    String sqlQuery = sql.toString();
+    String sqlQuery = sql.compile();
     assertThat(sqlQuery).isEqualToIgnoringCase("select 1!, 2, 3");
+  }
+
+  @Test
+  public void replace_namedParameter_to_placeholder() {
+    SQL sql = new SQL();
+    sql.select("1");
+    sql.select("2");
+    sql.from("test_table");
+    sql.where("test_table.column1 = :param");
+    sql.setValue("param", "asd");
+    String sqlQuery = sql.compile();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1, 2\nfrom test_table\nwhere test_table.column1 = ?");
   }
 
 
@@ -99,8 +111,8 @@ public class SQLSelectTest {
     sql.select("2");
     sql.from("test_table");
     sql.where("test_table.column1 = 'asd'");
-    String sqlQuery = sql.toString();
-    assertThat(sqlQuery).isEqualToIgnoringCase("select 1, 2\nfrom test_table\nwhere ( test_table.column1 = 'asd' )");
+    String sqlQuery = sql.compile();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1, 2\nfrom test_table\nwhere test_table.column1 = 'asd'");
   }
 
   @Test
@@ -111,8 +123,8 @@ public class SQLSelectTest {
     sql.from("test_table");
     sql.where("test_table.column1 = 'asd'");
     sql.where("test_table.column2 >= 42");
-    String sqlQuery = sql.toString();
-    assertThat(sqlQuery).isEqualToIgnoringCase("select 1, 2\nfrom test_table\nwhere test_table.column1 = 'asd' and test_table.column2 >= 42 ");
+    String sqlQuery = sql.compile();
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1, 2\nfrom test_table\nwhere test_table.column1 = 'asd' and test_table.column2 >= 42");
   }
 
 

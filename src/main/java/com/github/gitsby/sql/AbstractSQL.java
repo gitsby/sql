@@ -314,7 +314,7 @@ abstract class AbstractSQL<T> {
                   joinEntry.getValue().sqlKeyWord);
       }
 
-      sqlClause(builder, "WHERE", where, "", " ", " AND ");
+      sqlClause(builder, "WHERE", where, "", "", " AND ");
       sqlClause(builder, "GROUP BY", groupBy, "", "", ", ");
       sqlClause(builder, "HAVING", having, "(", ")", " AND ");
       sqlClause(builder, "ORDER BY", orderBy, "", "", ", ");
