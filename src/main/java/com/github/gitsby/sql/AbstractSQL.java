@@ -26,8 +26,8 @@ abstract class AbstractSQL<T> {
   protected abstract T createNew();
 
   final Map<String, T> withMap = new LinkedHashMap<>();
-  Map<String, List<Integer>> indexMap = new HashMap<>();
-  Map<String, Object> valueMap = new HashMap<>();
+  final Map<String, List<Integer>> indexMap = new HashMap<>();
+  final Map<String, Object> valueMap = new HashMap<>();
 
 
   public T with(String view) {
