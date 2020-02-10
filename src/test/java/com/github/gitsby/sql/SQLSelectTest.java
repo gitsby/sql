@@ -158,15 +158,52 @@ public class SQLSelectTest {
 
   @Test
   public void replace_namedParameter_to_placeholder() {
-    SQL sql = new SQL();
-    sql.select("1");
-    sql.select("2");
-    sql.from("test_table");
-    sql.where("test_table.column1 = :param");
-    sql.setValue("param", "asd");
+    SQL sql = new SQL()
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1")
+        .where("column2 = :param2")
+        .where("column3 = :param2")
+        .setValue("param1", "someValue1")
+        .setValue("param2", "someValue2");
+
     String sqlQuery = sql.compile();
-    assertThat(sqlQuery)
-        .isEqualToIgnoringCase("select 1, 2\nfrom test_table\nwhere test_table.column1 = ?");
+    assertThat(sqlQuery).isEqualToIgnoringCase("select 1"
+                                                   + "\nfrom test_table"
+                                                   + "\nwhere column1 = ?"
+                                                   + " and column2 = ?"
+                                                   + " and column3 = ?");
+  }
+
+  @Test
+  public void fill_indexMap_and_valueMap_for_setValue() {
+    SQL sql = new SQL()
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1")
+        .where("column2 = :param2")
+        .where("column3 = :param1")
+        .setValue("param1", "someValue1")
+        .setValue("param2", "someValue2");
+
+    sql.compile();
+
+    assertThat(sql.indexMap).isNotNull();
+    assertThat(sql.indexMap.size()).isEqualTo(2);
+    
+    assertThat(sql.indexMap.get("param1")).isNotNull();
+    assertThat(sql.indexMap.get("param1")).hasSize(2);
+    assertThat(sql.indexMap.get("param1").get(0)).isEqualTo(1);
+    assertThat(sql.indexMap.get("param1").get(1)).isEqualTo(3);
+
+    assertThat(sql.indexMap.get("param2")).isNotNull();
+    assertThat(sql.indexMap.get("param2")).hasSize(1);
+    assertThat(sql.indexMap.get("param2").get(0)).isEqualTo(2);
+
+    assertThat(sql.valueMap).isNotNull();
+    assertThat(sql.valueMap.size()).isEqualTo(2);
+    assertThat(sql.valueMap.get("param1")).isEqualTo("someValue1");
+    assertThat(sql.valueMap.get("param2")).isEqualTo("someValue2");
   }
 
 
