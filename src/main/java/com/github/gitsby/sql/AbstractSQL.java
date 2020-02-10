@@ -25,7 +25,7 @@ abstract class AbstractSQL<T> {
 
   protected abstract T createNew();
 
-  private final Map<String, T> withMap = new LinkedHashMap<>();
+  final Map<String, T> withMap = new LinkedHashMap<>();
   Map<String, List<Integer>> indexMap = new HashMap<>();
   Map<String, Object> valueMap = new HashMap<>();
 
