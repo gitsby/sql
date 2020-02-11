@@ -173,10 +173,9 @@ abstract class AbstractSQL<T> {
         if (e.getValue() instanceof SQL) {
           sb.append("\n");
         }
-        sb.append(sql).append(") ");
+        sb.append(sql).append("\n)");
       }
 
-      sb.append('\n');
       sb.append('\n');
     }
 
