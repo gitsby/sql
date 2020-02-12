@@ -363,4 +363,64 @@ public class SQLWithTest {
     );
   }
 
+
+  @Test
+  public void with_multiple_fill_indexMap_and_valueMap_for_setValue() {
+    SQL sql = new SQL();
+
+    SQL withSql1 = sql.with("with_table1");
+    withSql1
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1 and column2 = :param2")
+        .setValue("param1", "someValue1");
+
+    SQL withSql2 = sql.with("with_table2");
+    withSql2
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1 and column2 = :param2 and column3 = :param3")
+        .setValue("param2", "someValue2");
+
+    SQL withSql3 = sql.with("with_table3");
+    withSql3
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1 and column2 = :param2 and column3 = :param3");
+
+    sql.select("1")
+        .where("column3 = :param3 and column1 = :param1")
+        .setValue("param3", "someValue3");
+
+    sql.compile();
+
+    assertThat(sql.indexMap).isNotNull();
+    assertThat(sql.indexMap.size()).isEqualTo(3);
+
+    assertThat(sql.indexMap.get("param1")).isNotNull();
+    assertThat(sql.indexMap.get("param1")).hasSize(4);
+    assertThat(sql.indexMap.get("param1").get(0)).isEqualTo(1);
+    assertThat(sql.indexMap.get("param1").get(1)).isEqualTo(3);
+    assertThat(sql.indexMap.get("param1").get(2)).isEqualTo(6);
+    assertThat(sql.indexMap.get("param1").get(3)).isEqualTo(10);
+
+    assertThat(sql.indexMap.get("param2")).isNotNull();
+    assertThat(sql.indexMap.get("param2")).hasSize(3);
+    assertThat(sql.indexMap.get("param2").get(0)).isEqualTo(2);
+    assertThat(sql.indexMap.get("param2").get(1)).isEqualTo(4);
+    assertThat(sql.indexMap.get("param2").get(2)).isEqualTo(7);
+
+    assertThat(sql.indexMap.get("param3")).isNotNull();
+    assertThat(sql.indexMap.get("param3")).hasSize(3);
+    assertThat(sql.indexMap.get("param3").get(0)).isEqualTo(5);
+    assertThat(sql.indexMap.get("param3").get(1)).isEqualTo(8);
+    assertThat(sql.indexMap.get("param3").get(2)).isEqualTo(9);
+
+    assertThat(sql.valueMap).isNotNull();
+    assertThat(sql.valueMap.size()).isEqualTo(3);
+    assertThat(sql.valueMap.get("param1")).isEqualTo("someValue1");
+    assertThat(sql.valueMap.get("param2")).isEqualTo("someValue2");
+    assertThat(sql.valueMap.get("param3")).isEqualTo("someValue3");
+  }
+
 }

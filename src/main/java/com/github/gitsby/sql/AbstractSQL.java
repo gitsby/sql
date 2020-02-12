@@ -155,8 +155,6 @@ abstract class AbstractSQL<T> {
         String sql;
         if ((e.getValue() instanceof SQL)) {
           SQL withSQL = ((SQL) e.getValue());
-          appendValueMaps(mainSQL, withSQL);
-          appendIndexMaps(mainSQL, withSQL);
           sql = withSQL.compileBuild(mainSQL, false);
         } else {
           sql = e.getKey();
@@ -179,18 +177,6 @@ abstract class AbstractSQL<T> {
 
     sql().sql(sb);
     return parse(sb.toString(), mainSQL, isMainSql);
-  }
-
-  private void appendValueMaps(SQL mainSQL, SQL withSQL) {
-    for (Entry<String, Object> entry : withSQL.valueMap.entrySet()) {
-      mainSQL.valueMap.put(entry.getKey(), entry.getValue());
-    }
-  }
-
-  private void appendIndexMaps(SQL mainSQL, SQL withSQL) {
-    for (Entry<String, List<Integer>> entry : withSQL.indexMap.entrySet()) {
-      mainSQL.indexMap.put(entry.getKey(), entry.getValue());
-    }
   }
 
   @Override
@@ -378,31 +364,79 @@ abstract class AbstractSQL<T> {
 
           List<Integer> indexList = indexMap.computeIfAbsent(name, k -> new LinkedList<>());
           indexList.add(index);
-          if (!isMainSQL) {
-            int mainIndex = mainSQL.indexMap.size() + 1;
-            List<Integer> mainIndexList = mainSQL.indexMap
-                .computeIfAbsent(name, k -> new LinkedList<>());
-            mainIndexList.add(mainIndex);
-          }
 
           index++;
         }
       }
       parsedQuery.append(c);
     }
-    for (Entry<String, List<Integer>> entry : indexMap.entrySet()) {
-      List list = entry.getValue();
-      int[] indexes = new int[list.size()];
-      int i = 0;
-      for (Object aList : list) {
-        Integer x = (Integer) aList;
-        indexes[i++] = x;
-      }
-      entry.setValue(Arrays.stream(indexes).boxed().collect(Collectors.toList()));
+
+    if (isMainSQL) {
+      fillMainSqlValuesFromWithTables(mainSQL);
+      fillMainSqlIndexesFromWithTables(mainSQL);
     }
 
     return parsedQuery.toString();
   }
+
+  protected void fillMainSqlValuesFromWithTables(SQL mainSQL) {
+    for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
+      SQL withSql = entry.getValue();
+      for (Entry<String, Object> valueEntry : withSql.valueMap.entrySet()) {
+        mainSQL.valueMap.put(valueEntry.getKey(), valueEntry.getValue());
+      }
+    }
+  }
+
+  protected void fillMainSqlIndexesFromWithTables(SQL mainSQL) {
+    int startIndex = 0;
+    boolean firstWithTable = true;
+    for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
+      SQL withSql = entry.getValue();
+
+      int withSqlIndexCount = 0;
+      for (Entry<String, List<Integer>> indexEntry : withSql.indexMap.entrySet()) {
+        List<Integer> list = indexEntry.getValue();
+        for (int i = 0; i < list.size(); i++) {
+          if (!firstWithTable) {
+            list.set(i, list.get(i) + startIndex);
+          }
+        }
+        withSqlIndexCount += list.size();
+      }
+
+      startIndex += withSqlIndexCount;
+      firstWithTable = false;
+    }
+
+    for (Entry<String, List<Integer>> indexEntry : indexMap.entrySet()) {
+      List<Integer> indexes = indexEntry.getValue();
+      for (int i = 0; i < indexes.size(); i++) {
+        indexes.set(i, indexes.get(i) + startIndex);
+      }
+    }
+
+    for (Entry<String, Object> valueEntry : valueMap.entrySet()) {
+      String key = valueEntry.getKey();
+
+      LinkedList<Integer> newIndexList = new LinkedList<>();
+      for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
+        SQL withSql = entry.getValue();
+        List<Integer> list = withSql.indexMap.get(key);
+        if (list != null) {
+          newIndexList.addAll(list);
+        }
+      }
+
+      List<Integer> mainList = mainSQL.indexMap.get(key);
+      if (mainList != null) {
+        newIndexList.addAll(mainList);
+      }
+
+      mainSQL.indexMap.put(key, newIndexList);
+    }
+  }
+
 
   private List<Integer> getIndexes(String name) {
     List<Integer> indexes = indexMap.get(name);
