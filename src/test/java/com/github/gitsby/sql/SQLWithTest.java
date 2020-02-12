@@ -8,6 +8,55 @@ import org.junit.Test;
 public class SQLWithTest {
 
   @Test
+  public void set_named_parameter_multiple_time() {
+    SQL sql = new SQL()
+        .select("1")
+        .setValue("param1", "someName")
+        .setValue("param2", "someNewValue");
+
+    sql.with("with_table_1")
+        .select("1")
+        .from("test_table1 x")
+        .rightjoin("test_table3 x1 on x1.col = x.col")
+        .where("x1.col = :param1")
+        .where("x1.col2 = :param2");
+
+
+
+    sql.with("with_table_2")
+        .select("1")
+        .from("test_table2 x")
+        .join("test_table4 x1 on x1.col = x.col")
+        .where("x1.col = :param1");
+
+    String sqlQuery = sql.compile();
+
+    assertThat(sqlQuery).isEqualToIgnoringCase(
+        "WITH with_table_1 as (\n"
+            + "SELECT 1\n"
+            + "FROM test_table1 x\n"
+            + "RIGHT JOIN test_table3 x1 on x1.col = x.col\n"
+            + "WHERE x1.col = ? AND x1.col2 = ?\n"
+            + "),\n"
+            + "with_table_2 as (\n"
+            + "SELECT 1\n"
+            + "FROM test_table2 x\n"
+            + "JOIN test_table4 x1 on x1.col = x.col\n"
+            + "WHERE x1.col = ?\n"
+            + ")\n"
+            + "SELECT 1"
+    );
+
+    assertThat(sql.indexMap.get("param1")).isNotNull();
+    assertThat(sql.indexMap.get("param1")).hasSize(2);
+    assertThat(sql.indexMap.get("param1").get(0)).isEqualTo(1);
+    assertThat(sql.indexMap.get("param1").get(1)).isEqualTo(3);
+    assertThat(sql.indexMap.get("param2")).isNotNull();
+    assertThat(sql.indexMap.get("param2")).hasSize(1);
+    assertThat(sql.indexMap.get("param2").get(0)).isEqualTo(2);
+  }
+
+  @Test
   public void inner_join() {
     SQL sql = new SQL()
         .select("1");
@@ -357,8 +406,8 @@ public class SQLWithTest {
 
     assertThat(sqlQuery).isEqualToIgnoringCase(
         "with with_table1 as (\nselect 1\nfrom test_table\n)"
-            + "\n, with_table2 as (\nselect 2\nfrom test_table\n)"
-            + "\n, with_table3 as (\nselect 3\nfrom test_table\n)"
+            + ",\nwith_table2 as (\nselect 2\nfrom test_table\n)"
+            + ",\nwith_table3 as (\nselect 3\nfrom test_table\n)"
             + "\nselect 1"
     );
   }

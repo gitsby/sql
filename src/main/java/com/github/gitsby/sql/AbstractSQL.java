@@ -161,7 +161,7 @@ abstract class AbstractSQL<T> {
         }
 
         if (needComma) {
-          sb.append("\n, ");
+          sb.append(",\n");
         }
         needComma = true;
 
