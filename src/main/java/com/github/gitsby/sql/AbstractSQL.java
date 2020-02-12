@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 abstract class AbstractSQL<T> {
 
@@ -26,8 +24,8 @@ abstract class AbstractSQL<T> {
   protected abstract T createNew();
 
   final Map<String, T> withMap = new LinkedHashMap<>();
-  final Map<String, List<Integer>> indexMap = new HashMap<>();
   final Map<String, Object> valueMap = new HashMap<>();
+  final Map<String, List<Integer>> indexMap = new LinkedHashMap<>();
 
 
   public T with(String view) {
