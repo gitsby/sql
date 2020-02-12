@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,7 +13,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 abstract class AbstractSQL<T> {
 
@@ -25,9 +23,9 @@ abstract class AbstractSQL<T> {
 
   protected abstract T createNew();
 
-  private final Map<String, T> withMap = new LinkedHashMap<>();
-  Map<String, List<Integer>> indexMap = new HashMap<>();
-  Map<String, Object> valueMap = new HashMap<>();
+  final Map<String, T> withMap = new LinkedHashMap<>();
+  final Map<String, Object> valueMap = new HashMap<>();
+  final Map<String, List<Integer>> indexMap = new LinkedHashMap<>();
 
 
   public T with(String view) {
@@ -157,8 +155,6 @@ abstract class AbstractSQL<T> {
         String sql;
         if ((e.getValue() instanceof SQL)) {
           SQL withSQL = ((SQL) e.getValue());
-          appendValueMaps(mainSQL, withSQL);
-          appendIndexMaps(mainSQL, withSQL);
           sql = withSQL.compileBuild(mainSQL, false);
         } else {
           sql = e.getKey();
@@ -173,27 +169,14 @@ abstract class AbstractSQL<T> {
         if (e.getValue() instanceof SQL) {
           sb.append("\n");
         }
-        sb.append(sql).append(") ");
+        sb.append(sql).append("\n)");
       }
 
-      sb.append('\n');
       sb.append('\n');
     }
 
     sql().sql(sb);
     return parse(sb.toString(), mainSQL, isMainSql);
-  }
-
-  private void appendValueMaps(SQL mainSQL, SQL withSQL) {
-    for (Entry<String, Object> entry : withSQL.valueMap.entrySet()) {
-      mainSQL.valueMap.put(entry.getKey(), entry.getValue());
-    }
-  }
-
-  private void appendIndexMaps(SQL mainSQL, SQL withSQL) {
-    for (Entry<String, List<Integer>> entry : withSQL.indexMap.entrySet()) {
-      mainSQL.indexMap.put(entry.getKey(), entry.getValue());
-    }
   }
 
   @Override
@@ -381,31 +364,96 @@ abstract class AbstractSQL<T> {
 
           List<Integer> indexList = indexMap.computeIfAbsent(name, k -> new LinkedList<>());
           indexList.add(index);
-          if (!isMainSQL) {
-            int mainIndex = mainSQL.indexMap.size() + 1;
-            List<Integer> mainIndexList = mainSQL.indexMap
-                .computeIfAbsent(name, k -> new LinkedList<>());
-            mainIndexList.add(mainIndex);
-          }
 
           index++;
         }
       }
       parsedQuery.append(c);
     }
-    for (Entry<String, List<Integer>> entry : indexMap.entrySet()) {
-      List list = entry.getValue();
-      int[] indexes = new int[list.size()];
-      int i = 0;
-      for (Object aList : list) {
-        Integer x = (Integer) aList;
-        indexes[i++] = x;
-      }
-      entry.setValue(Arrays.stream(indexes).boxed().collect(Collectors.toList()));
+
+    if (isMainSQL) {
+      fillSqlValuesFromWithTables(mainSQL);
+      fillMainSqlIndexesFromWithTables(mainSQL);
     }
 
     return parsedQuery.toString();
   }
+
+  protected void fillSqlValuesFromWithTables(SQL sql) {
+    for (Entry<String, SQL> entry : sql.withMap.entrySet()) {
+      SQL withSql = entry.getValue();
+      for (Entry<String, Object> valueEntry : withSql.valueMap.entrySet()) {
+        if (sql.valueMap.get(valueEntry.getKey()) != null) {
+          throw new IllegalArgumentException("Value for key \"" + valueEntry.getKey() + "\" is set more than once");
+        }
+        sql.valueMap.put(valueEntry.getKey(), valueEntry.getValue());
+      }
+    }
+  }
+
+  protected void fillMainSqlIndexesFromWithTables(SQL sql) {
+    int lastWithTableIndex = calculateIndexesForWithTables(sql);
+
+    shiftIndexMapValues(lastWithTableIndex);
+
+    mergeWithTableIndexMapValues(sql);
+  }
+
+  private int calculateIndexesForWithTables(SQL sql) {
+    int indexCount = 0;
+    boolean isFirst = true;
+    for (Entry<String, SQL> entry : sql.withMap.entrySet()) {
+      SQL withSql = entry.getValue();
+
+      int withSqlIndexCount = 0;
+      for (Entry<String, List<Integer>> indexEntry : withSql.indexMap.entrySet()) {
+        List<Integer> list = indexEntry.getValue();
+        for (int i = 0; i < list.size(); i++) {
+          if (!isFirst) {
+            list.set(i, list.get(i) + indexCount);
+          }
+        }
+        withSqlIndexCount += list.size();
+      }
+
+      indexCount += withSqlIndexCount;
+      isFirst = false;
+    }
+    return indexCount;
+  }
+
+  private void shiftIndexMapValues(int valueToShift) {
+    for (Entry<String, List<Integer>> indexEntry : indexMap.entrySet()) {
+      List<Integer> indexes = indexEntry.getValue();
+      for (int i = 0; i < indexes.size(); i++) {
+        indexes.set(i, indexes.get(i) + valueToShift);
+      }
+    }
+  }
+
+  private void mergeWithTableIndexMapValues(SQL mainSQL) {
+    // Use valueMap to be sure to iterate through all keys
+    for (Entry<String, Object> valueEntry : valueMap.entrySet()) {
+      String key = valueEntry.getKey();
+
+      LinkedList<Integer> mergedIndexList = new LinkedList<>();
+      for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
+        SQL withSql = entry.getValue();
+        List<Integer> list = withSql.indexMap.get(key);
+        if (list != null) {
+          mergedIndexList.addAll(list);
+        }
+      }
+
+      List<Integer> mainList = mainSQL.indexMap.get(key);
+      if (mainList != null) {
+        mergedIndexList.addAll(mainList);
+      }
+
+      mainSQL.indexMap.put(key, mergedIndexList);
+    }
+  }
+
 
   private List<Integer> getIndexes(String name) {
     List<Integer> indexes = indexMap.get(name);
@@ -472,6 +520,9 @@ abstract class AbstractSQL<T> {
   }
 
   public T setValue(String name, Object value) {
+    if (valueMap.get(name) != null) {
+      throw new IllegalArgumentException("Value for key \"" + name + "\" is set more than once");
+    }
     valueMap.put(name, value);
     return getSelf();
   }
