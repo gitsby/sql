@@ -372,68 +372,82 @@ abstract class AbstractSQL<T> {
     }
 
     if (isMainSQL) {
-      fillMainSqlValuesFromWithTables(mainSQL);
+      fillSqlValuesFromWithTables(mainSQL);
       fillMainSqlIndexesFromWithTables(mainSQL);
     }
 
     return parsedQuery.toString();
   }
 
-  protected void fillMainSqlValuesFromWithTables(SQL mainSQL) {
-    for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
+  protected void fillSqlValuesFromWithTables(SQL sql) {
+    for (Entry<String, SQL> entry : sql.withMap.entrySet()) {
       SQL withSql = entry.getValue();
       for (Entry<String, Object> valueEntry : withSql.valueMap.entrySet()) {
-        mainSQL.valueMap.put(valueEntry.getKey(), valueEntry.getValue());
+        sql.valueMap.put(valueEntry.getKey(), valueEntry.getValue());
       }
     }
   }
 
-  protected void fillMainSqlIndexesFromWithTables(SQL mainSQL) {
-    int startIndex = 0;
-    boolean firstWithTable = true;
-    for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
+  protected void fillMainSqlIndexesFromWithTables(SQL sql) {
+    int lastWithTableIndex = calculateIndexesForWithTables(sql);
+
+    shiftIndexMapValues(lastWithTableIndex);
+
+    mergeWithTableIndexMapValues(sql);
+  }
+
+  private int calculateIndexesForWithTables(SQL sql) {
+    int indexCount = 0;
+    boolean isFirst = true;
+    for (Entry<String, SQL> entry : sql.withMap.entrySet()) {
       SQL withSql = entry.getValue();
 
       int withSqlIndexCount = 0;
       for (Entry<String, List<Integer>> indexEntry : withSql.indexMap.entrySet()) {
         List<Integer> list = indexEntry.getValue();
         for (int i = 0; i < list.size(); i++) {
-          if (!firstWithTable) {
-            list.set(i, list.get(i) + startIndex);
+          if (!isFirst) {
+            list.set(i, list.get(i) + indexCount);
           }
         }
         withSqlIndexCount += list.size();
       }
 
-      startIndex += withSqlIndexCount;
-      firstWithTable = false;
+      indexCount += withSqlIndexCount;
+      isFirst = false;
     }
+    return indexCount;
+  }
 
+  private void shiftIndexMapValues(int valueToShift) {
     for (Entry<String, List<Integer>> indexEntry : indexMap.entrySet()) {
       List<Integer> indexes = indexEntry.getValue();
       for (int i = 0; i < indexes.size(); i++) {
-        indexes.set(i, indexes.get(i) + startIndex);
+        indexes.set(i, indexes.get(i) + valueToShift);
       }
     }
+  }
 
+  private void mergeWithTableIndexMapValues(SQL mainSQL) {
+    // Use valueMap to be sure to iterate through all keys
     for (Entry<String, Object> valueEntry : valueMap.entrySet()) {
       String key = valueEntry.getKey();
 
-      LinkedList<Integer> newIndexList = new LinkedList<>();
+      LinkedList<Integer> mergedIndexList = new LinkedList<>();
       for (Entry<String, SQL> entry : mainSQL.withMap.entrySet()) {
         SQL withSql = entry.getValue();
         List<Integer> list = withSql.indexMap.get(key);
         if (list != null) {
-          newIndexList.addAll(list);
+          mergedIndexList.addAll(list);
         }
       }
 
       List<Integer> mainList = mainSQL.indexMap.get(key);
       if (mainList != null) {
-        newIndexList.addAll(mainList);
+        mergedIndexList.addAll(mainList);
       }
 
-      mainSQL.indexMap.put(key, newIndexList);
+      mainSQL.indexMap.put(key, mergedIndexList);
     }
   }
 
