@@ -175,6 +175,16 @@ public class SQLSelectTest {
                                                    + " and column3 = ?");
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void setValue_more_than_once() {
+    new SQL()
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1")
+        .setValue("param1", "value1")
+        .setValue("param1", "value2");
+  }
+
   @Test
   public void fill_indexMap_and_valueMap_for_setValue() {
     SQL sql = new SQL()

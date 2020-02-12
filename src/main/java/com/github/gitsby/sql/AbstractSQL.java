@@ -383,6 +383,9 @@ abstract class AbstractSQL<T> {
     for (Entry<String, SQL> entry : sql.withMap.entrySet()) {
       SQL withSql = entry.getValue();
       for (Entry<String, Object> valueEntry : withSql.valueMap.entrySet()) {
+        if (sql.valueMap.get(valueEntry.getKey()) != null) {
+          throw new IllegalArgumentException("Value for key \"" + valueEntry.getKey() + "\" is set more than once");
+        }
         sql.valueMap.put(valueEntry.getKey(), valueEntry.getValue());
       }
     }
@@ -517,6 +520,9 @@ abstract class AbstractSQL<T> {
   }
 
   public T setValue(String name, Object value) {
+    if (valueMap.get(name) != null) {
+      throw new IllegalArgumentException("Value for key \"" + name + "\" is set more than once");
+    }
     valueMap.put(name, value);
     return getSelf();
   }

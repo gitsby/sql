@@ -423,4 +423,20 @@ public class SQLWithTest {
     assertThat(sql.valueMap.get("param3")).isEqualTo("someValue3");
   }
 
+  @Test(expected = IllegalArgumentException.class)
+  public void setValue_more_than_once() {
+    SQL sql = new SQL()
+        .select("1")
+        .from("test_table")
+        .where("column1 = :param1")
+        .setValue("param1", "value1");
+
+    sql.with("with_table")
+        .select("1")
+        .from("test_table")
+        .setValue("param1", "value2");
+
+    sql.compile();
+  }
+
 }
